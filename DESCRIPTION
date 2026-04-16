@@ -26,7 +26,8 @@ Imports:
     tibble,
     crayon,
     rstudioapi,
-    stringi
-RoxygenNote: 7.1.0
+    stringi, 
+    processx
+RoxygenNote: 7.3.3
 LinkingTo: 
     Rcpp

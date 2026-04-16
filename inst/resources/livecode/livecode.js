@@ -1,4 +1,7 @@
-var ws = new WebSocket("ws://"+window.location.host);
+WHenvar ws = new WebSocket(
+  (window.location.protocol === "https:" ? "wss://" : "ws://") +
+  window.location.host
+);
 
 draw_pb = function(interval) {
   var pb = document.getElementById('progressbar');
