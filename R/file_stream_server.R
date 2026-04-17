@@ -484,14 +484,9 @@ lc_server_iface = R6::R6Class(
       private$ngrok_bin <- ngrok_bin
       
       args <- c("http", paste0(private$ip, ":", private$port))
-      
-      if (!is.null(domain)) {
+      if (!is.null(domain))
         args <- c(args, paste0("--domain=", domain))
-        private$.public_url <- paste0("https://", domain)
-      } else {
-        private$.public_url <- NULL
-      }
-      
+
       private$ngrok_process <- processx::process$new(
         command = ngrok_bin,
         args = args,
