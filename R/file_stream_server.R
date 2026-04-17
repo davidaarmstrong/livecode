@@ -498,25 +498,18 @@ lc_server_iface = R6::R6Class(
         stdout = "|",
         stderr = "|"
       )
-      
-      Sys.sleep(1)
-      
-      if (!private$ngrok_process$is_alive()) {
-        err <- private$ngrok_process$read_error_lines()
-        usethis::ui_stop(c(
-          "Failed to start ngrok.",
-          if (length(err)) paste(err, collapse = "\n") else "No error output captured."
-        ))
+
+      private$.public_url <- query_ngrok_public_url()
+
+      if (is.null(private$.public_url)) {
+        self$stop_ngrok()
+        usethis::ui_stop("Failed to start ngrok tunnel or retrieve its public URL.")
       }
-      
-      if (!is.null(private$.public_url)) {
-        usethis::ui_done(
-          glue::glue("Started ngrok tunnel at {usethis::ui_value(private$.public_url)}.")
-        )
-      } else {
-        usethis::ui_done("Started ngrok tunnel.")
-      }
-      
+
+      usethis::ui_done(
+        glue::glue("Started ngrok tunnel at {usethis::ui_value(private$.public_url)}.")
+      )
+
       invisible(self)
     },
     
