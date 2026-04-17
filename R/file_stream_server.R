@@ -161,8 +161,7 @@ file_stream_server = function(host, port, file, file_id, interval = 3, template 
       list(
         status = 200L,
         headers = list(
-          #'Content-Type' = 'text/html'
-          'Content-Type'='text/html; charset=UTF-8'
+          'Content-Type' = 'text/html; charset=UTF-8'
         ),
         body = page
       )
@@ -488,41 +487,28 @@ lc_server_iface = R6::R6Class(
       private$ngrok_domain <- domain
       private$ngrok_bin <- ngrok_bin
       
-      args <- c("http", self$url)
-      
-      if (!is.null(domain)) {
+      args <- c("http", paste0(private$ip, ":", private$port))
+      if (!is.null(domain))
         args <- c(args, paste0("--domain=", domain))
-        args <- c(args, "--scheme", "http", "--scheme", "https")
-        private$.public_url <- paste0("https://", domain)
-      } else {
-        private$.public_url <- NULL
-      }
-      
+
       private$ngrok_process <- processx::process$new(
         command = ngrok_bin,
         args = args,
         stdout = "|",
         stderr = "|"
       )
-      
-      Sys.sleep(1)
-      
-      if (!private$ngrok_process$is_alive()) {
-        err <- private$ngrok_process$read_error_lines()
-        usethis::ui_stop(c(
-          "Failed to start ngrok.",
-          if (length(err)) paste(err, collapse = "\n") else "No error output captured."
-        ))
+
+      private$.public_url <- query_ngrok_public_url()
+
+      if (is.null(private$.public_url)) {
+        self$stop_ngrok()
+        usethis::ui_stop("Failed to start ngrok tunnel or retrieve its public URL.")
       }
-      
-      if (!is.null(private$.public_url)) {
-        usethis::ui_done(
-          glue::glue("Started ngrok tunnel at {usethis::ui_value(private$.public_url)}.")
-        )
-      } else {
-        usethis::ui_done("Started ngrok tunnel.")
-      }
-      
+
+      usethis::ui_done(
+        glue::glue("Started ngrok tunnel at {usethis::ui_value(private$.public_url)}.")
+      )
+
       invisible(self)
     },
     

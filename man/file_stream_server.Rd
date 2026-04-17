@@ -68,7 +68,4 @@ of:
 \code{\link{file_cache}},
 \code{\link{lc_server_iface}}
 }
-\keyword{'text/html'}
-\keyword{=}
-\keyword{Content-Type'}
 \keyword{internal}
