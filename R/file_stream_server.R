@@ -37,6 +37,65 @@ lc_server <- R6::R6Class(
 )
 
 
+#' Create a low-level livecode file streaming server
+#'
+#' @description
+#' Creates and returns a low-level HTTP/WebSocket server used by
+#' \pkg{livecode} to broadcast the contents of a source file to connected
+#' browsers.
+#'
+#' The server hosts an HTML page, serves supporting static assets, and maintains
+#' WebSocket connections to all connected clients. File changes, editor cursor
+#' selections, and queued messages are pushed to clients at a fixed interval.
+#'
+#' This function is primarily an internal constructor used by
+#' \code{\link{serve_file}} and \code{LiveCodeServer_Interface}.
+#'
+#' @param host Character string giving the IP address or hostname on which the
+#'   server should listen.
+#' @param port Integer port number for the server.
+#' @param file Path to the file being broadcast.
+#' @param file_id Optional editor-specific file identifier used by RStudio for
+#'   auto-save operations.
+#' @param interval Numeric update interval in seconds between broadcast ticks.
+#' @param template Character string naming the HTML template to use. Defaults
+#'   to \code{"prism"}.
+#'
+#' @details
+#' The server performs the following tasks:
+#'
+#' \itemize{
+#'   \item Serves a rendered HTML page based on the selected template.
+#'   \item Tracks the source file using \code{\link{file_cache}}.
+#'   \item Pushes updated file contents to clients when the file changes.
+#'   \item Pushes queued messages from the server message queue.
+#'   \item In RStudio, optionally saves the file on each update tick.
+#'   \item In RStudio, broadcasts the current editor selection when the served
+#'     file is the active document.
+#'   \item Serves static assets (JavaScript, CSS, etc.) from the package
+#'     resources directory under \code{/web}.
+#' }
+#'
+#' Connected clients receive JSON messages over WebSocket containing one or more
+#' of:
+#'
+#' \itemize{
+#'   \item \code{content}: updated file contents
+#'   \item \code{messages}: queued notifications
+#'   \item \code{selection}: highlighted line selection
+#'   \item \code{interval}: refresh interval
+#' }
+#'
+#' @return
+#' A \code{LiveCodeServer} R6 object inheriting from
+#' \code{httpuv:::WebServer}.
+#'
+#' @seealso
+#' \code{\link{serve_file}},
+#' \code{\link{file_cache}},
+#' \code{\link{lc_server_iface}}
+#'
+#' @keywords internal
 file_stream_server = function(host, port, file, file_id, interval = 3, template = "prism") {
   port = as.integer(port)
   file_cache = file_cache(file)
@@ -126,7 +185,7 @@ file_stream_server = function(host, port, file, file_id, interval = 3, template 
     },
 
     staticPaths = list(
-      "/web" = livecode:::pkg_resource("resources")
+      "/web" = pkg_resource("resources")
     )
   )
 
@@ -598,9 +657,6 @@ lc_server_iface = R6::R6Class(
 #'
 #' srv$stop()
 #' }
-#'
-#' @seealso
-#' \code{\link{network_interfaces}}, \code{\link{LiveCodeServer_Interface}}
 #'
 #' @export
 serve_file = function(file,

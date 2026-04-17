@@ -106,6 +106,3 @@ srv$stop()
 }
 
 }
-\seealso{
-\code{\link{network_interfaces}}, \code{\link{LiveCodeServer_Interface}}
-}
