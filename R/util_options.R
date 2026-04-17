@@ -62,17 +62,26 @@ get_option = function(x, default = NULL) {
     return(default)
   }
   
-  rstudio_env <- tryCatch(as.environment("tools:rstudio"), error = function(e) NULL)
+  rstudio_env <- tryCatch(
+    as.environment("tools:rstudio"),
+    error = function(e) NULL
+  )
+  
   if (is.null(rstudio_env)) {
     return(default)
   }
   
-  read_ui_pref <- get0(".rs.readUiPref", envir = rstudio_env, mode = "function")
+  read_ui_pref <- get0(
+    ".rs.readUiPref",
+    envir = rstudio_env,
+    mode = "function"
+  )
+  
   if (is.null(read_ui_pref)) {
     return(default)
   }
   
-  read_ui_pref(x) %||% default
+  read_ui_pref(x, default = default)
 }
 check_strip_trailing_ws = function() {
   get_option("strip_trailing_whitespace", default = FALSE)

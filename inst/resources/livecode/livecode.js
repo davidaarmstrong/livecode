@@ -1,4 +1,4 @@
-WHenvar ws = new WebSocket(
+var ws = new WebSocket(
   (window.location.protocol === "https:" ? "wss://" : "ws://") +
   window.location.host
 );

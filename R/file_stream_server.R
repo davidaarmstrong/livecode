@@ -133,15 +133,20 @@ file_stream_server = function(host, port, file, file_id, interval = 3, template 
     }
 
     if (is_rstudio()) {
-      ctx = rstudioapi::getSourceEditorContext()
-      open_file = path.expand(ctx[["path"]])
-
-      if (file == open_file) {
-        ln = extract_line_nums(ctx[["selection"]])
-        msg[["selection"]] = ln
+      ctx <- tryCatch(
+        rstudioapi::getSourceEditorContext(),
+        error = function(e) NULL
+      )
+      
+      if (!is.null(ctx) && !is.null(ctx[["path"]]) && nzchar(ctx[["path"]])) {
+        open_file <- path.expand(ctx[["path"]])
+        
+        if (identical(file, open_file)) {
+          ln <- extract_line_nums(ctx[["selection"]])
+          msg[["selection"]] <- ln
+        }
       }
     }
-
     msg = jsonlite::toJSON(msg, auto_unbox = TRUE)
 
     for(ws_id in names(websockets)) {
