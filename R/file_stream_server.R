@@ -487,7 +487,6 @@ lc_server_iface = R6::R6Class(
       
       if (!is.null(domain)) {
         args <- c(args, paste0("--domain=", domain))
-        args <- c(args, "--scheme", "http", "--scheme", "https")
         private$.public_url <- paste0("https://", domain)
       } else {
         private$.public_url <- NULL
