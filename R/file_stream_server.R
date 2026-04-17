@@ -96,7 +96,10 @@ lc_server <- R6::R6Class(
 #' \code{\link{lc_server_iface}}
 #'
 #' @keywords internal
-file_stream_server = function(host, port, file, file_id, interval = 3, template = "prism") {
+file_stream_server = function(host, port, file, file_id,
+                              interval = 3,
+                              template = "prism",
+                              track_selection = TRUE) {
   port = as.integer(port)
   file_cache = file_cache(file)
   page = glue::glue(
@@ -104,35 +107,34 @@ file_stream_server = function(host, port, file, file_id, interval = 3, template 
     lang = "r",
     title = file
   )
-
+  
   get_next_ws_id = local({
     next_ws_id = 0L
     function() {
       sprintf("%012d", next_ws_id <<- next_ws_id + 1L)
     }
   })
-
+  
   websockets = new.env(parent = emptyenv())
-
+  
   websocket_loop = function() {
     if (!server$isRunning())
       return()
-
+    
     if (is_rstudio() & !is.null(file_id)) {
       rstudioapi::documentSave(file_id)
     }
-
+    
     msg = list(interval = interval)
     if (file_cache$need_update())
       msg[["content"]] = file_cache$content
-
+    
     if (server$have_msgs()) {
       msgs = purrr::map(server$get_msgs(), ~ .$get_msg())
-
       msg[["messages"]] = msgs
     }
-
-    if (is_rstudio()) {
+    
+    if (track_selection && is_rstudio()) {
       ctx <- tryCatch(
         rstudioapi::getSourceEditorContext(),
         error = function(e) NULL
@@ -147,15 +149,16 @@ file_stream_server = function(host, port, file, file_id, interval = 3, template 
         }
       }
     }
+    
     msg = jsonlite::toJSON(msg, auto_unbox = TRUE)
-
-    for(ws_id in names(websockets)) {
+    
+    for (ws_id in names(websockets)) {
       websockets[[ws_id]]$send(msg)
     }
-
+    
     later::later(websocket_loop, interval)
   }
-
+  
   app = list(
     call = function(req) {
       list(
@@ -166,39 +169,33 @@ file_stream_server = function(host, port, file, file_id, interval = 3, template 
         body = page
       )
     },
-
+    
     onWSOpen = function(ws) {
       ws_id = get_next_ws_id()
       websockets[[ws_id]] = ws
-
-      ws$onClose(
-        function() {
-          rm(list = ws_id, envir = websockets)
-        }
-      )
-
-      ## Send initial message with current file contents
+      
+      ws$onClose(function() {
+        rm(list = ws_id, envir = websockets)
+      })
+      
       msg = list(
         interval = interval,
         content = file_cache$content
       )
       ws$send(jsonlite::toJSON(msg, auto_unbox = TRUE))
-
+      
       if (as.integer(ws_id) == 1)
         websocket_loop()
     },
-
+    
     staticPaths = list(
-      "/web" = pkg_resource("resources")
+      "/web" = livecode:::pkg_resource("resources")
     )
   )
-
-  # Must be defined for the websocket_loop above to work
+  
   server = lc_server$new(host, port, app)
-
   server
 }
-
 #' Livecode Server Interface
 #'
 #' @description
@@ -219,6 +216,7 @@ lc_server_iface = R6::R6Class(
     interval = NULL,
     bitly_url = NULL,
     server = NULL,
+    track_selection = NULL,
     ngrok_process = NULL,
     ngrok_domain = NULL,
     ngrok_bin = NULL,
@@ -336,7 +334,7 @@ lc_server_iface = R6::R6Class(
       private$init_file(file, auto_save)
       private$init_ip(ip)
       private$init_port(port)
-      
+      private$track_selection = !auto_save
       private$template = "prism"
       private$interval = interval
       self$start()
@@ -423,7 +421,9 @@ lc_server_iface = R6::R6Class(
     start = function() {
       private$server = file_stream_server(
         private$ip, private$port, private$file, private$file_id,
-        template = private$template, interval = private$interval
+        template = private$template,
+        interval = private$interval,
+        track_selection = private$track_selection
       )
       
       usethis::ui_done(paste(

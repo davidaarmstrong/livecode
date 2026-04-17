@@ -1,6 +1,6 @@
 Package: livecode
 Title: Broadcast a source file to multiple concurrant users
-Version: 0.1.0.9000
+Version: 0.1.0.9001
 Authors@R: 
     person(given = "Colin",
            family = "Rundel",
